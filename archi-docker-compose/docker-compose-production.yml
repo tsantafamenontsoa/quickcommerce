@@ -1,0 +1,118 @@
+# ============================================
+# Docker Compose - PRODUCTION-LIKE
+# QuickCommerce Séance 1 - Tout dans Docker
+# ============================================
+# Version avec App Node.js + MySQL conteneurisés
+
+services:
+  # ==========================================
+  # APPLICATION NODE.JS (Conteneurisée)
+  # ==========================================
+  app:
+    build:
+      context: ../quickcommerce-code/seance1-monolithe
+      dockerfile: Dockerfile
+    image: quickcommerce-app:1.0
+    container_name: quickcommerce_app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql              # ← Nom du service (réseau Docker interne)
+      DB_PORT: 3306               # ← Port interne Docker (pas 3309)
+      DB_NAME: quickcommerce
+      DB_USER: root
+      DB_PASSWORD: monolithe2024
+      DEFAULT_PAGE_SIZE: 20
+      MAX_PAGE_SIZE: 100
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - quickcommerce-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================
+  # BASE DE DONNÉES MYSQL
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: quickcommerce_mysql
+    ports:
+      - "3309:3306"  # Port externe pour accès direct (debug)
+    environment:
+      MYSQL_ROOT_PASSWORD: monolithe2024
+      MYSQL_DATABASE: quickcommerce
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../quickcommerce-code/seance1-monolithe/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - quickcommerce-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pmonolithe2024"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+# ==========================================
+# RÉSEAU
+# ==========================================
+networks:
+  quickcommerce-net:
+    driver: bridge
+    name: quickcommerce-network
+
+# ==========================================
+# VOLUMES PERSISTANTS
+# ==========================================
+volumes:
+  mysql-data:
+    driver: local
+    name: quickcommerce-mysql-data
+
+# ============================================
+# COMMANDES UTILES
+# ============================================
+# Build et démarrer :
+#   docker-compose -f docker-compose-production.yml up --build -d
+#
+# Voir les logs :
+#   docker-compose -f docker-compose-production.yml logs -f
+#   docker-compose -f docker-compose-production.yml logs -f app
+#
+# Arrêter :
+#   docker-compose -f docker-compose-production.yml down
+#
+# Supprimer volumes (ATTENTION: perd les données) :
+#   docker-compose -f docker-compose-production.yml down -v
+#
+# Rebuild après modification code :
+#   docker-compose -f docker-compose-production.yml up --build -d
+#
+# Accéder à l'app :
+#   http://localhost:3000
+#   http://localhost:3000/health
+#   http://localhost:3000/api/products
+#
+# ============================================
+# DIFFÉRENCES vs VERSION DÉVELOPPEMENT
+# ============================================
+# DEV (hybride) :
+#   - App tourne sur Windows (npm start)
+#   - MySQL dans Docker
+#   - Modification code = redémarrage instantané
+#
+# PROD (ce fichier) :
+#   - App + MySQL dans Docker
+#   - Réseau Docker interne
+#   - Modification code = rebuild image
+#   - Plus proche d'un vrai déploiement

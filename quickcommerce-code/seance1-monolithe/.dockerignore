@@ -1,0 +1,42 @@
+# ============================================
+# .dockerignore
+# ============================================
+# Fichiers à exclure lors du build Docker
+
+# Node modules (seront installés dans l'image)
+node_modules/
+npm-debug.log
+
+# Fichiers de développement
+.git/
+.gitignore
+*.md
+README.md
+
+# Fichiers d'environnement (sensibles)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test et coverage
+coverage/
+.nyc_output/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
