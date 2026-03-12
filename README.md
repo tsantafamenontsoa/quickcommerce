@@ -192,7 +192,7 @@ docker-compose restart
 
 ## 👥 Auteurs
 
-Cours Architecture SI Avancée - [Votre École]
+Tsanta Randriatsitohaina
 
 ---
 
